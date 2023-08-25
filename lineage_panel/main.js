@@ -15,6 +15,11 @@ const legendData = {
     { id: "tests", label: "tests", style: { fill: "#8DE88E" } },
   ],
 };
+
+async function executeCommand(command, args) {
+  return await vscode.postMessage({ command, ...args });
+}
+
 const legend = new G6.Legend({
   data: legendData,
   align: "center",

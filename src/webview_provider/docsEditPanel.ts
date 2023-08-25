@@ -118,7 +118,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     const docColumns = currentNode.columns;
     return {
-      aiEnabled: this.altimateRequest.enabled(),
+      aiEnabled: this.altimateRequest.enabled() || false,
       name: modelName,
       patchPath: currentNode.patch_path,
       description: currentNode.description,

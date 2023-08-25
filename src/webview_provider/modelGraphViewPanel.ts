@@ -21,6 +21,8 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { AltimateRequest } from "../altimate";
+import { NodeMetaData } from "../domain";
 
 interface G6DataModel {
   nodes: {
@@ -75,9 +77,11 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   private g6Data?: G6DataModel;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
+  private modelNode?: NodeMetaData;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private altimate: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
@@ -167,6 +171,57 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
               preview: false,
               preserveFocus: true,
             });
+          case "getColLevelLineage":
+            this.telemetry.sendTelemetryEvent("getColLevelLineage");
+            const currentFilePath = window.activeTextEditor?.document.uri;
+            if (currentFilePath === undefined) {
+              return;
+            }
+            const project =
+              this.dbtProjectContainer.findDBTProject(currentFilePath);
+            if (project === undefined || this.modelNode === undefined) {
+              return;
+            }
+            // save compiled sql
+            const compiledSql = await project.compileQuery(
+              window.activeTextEditor!.document.getText(),
+            );
+            const modelName = path.basename(currentFilePath.fsPath, ".sql");
+            const columnsInRelation =
+              await project.getColumnsInRelation(modelName);
+
+            if (!columnsInRelation) {
+              // not sure if i should quit if i
+              // cant get cols from db or just keep going
+              return;
+            }
+            type colType = NodeMetaData["columns"];
+            const columns: colType = Object.assign(
+              {},
+              ...columnsInRelation.map((column) => {
+                const existing_column = this.modelNode!.columns[column.column];
+                return {
+                  [column.column]: {
+                    name: column.column,
+                    data_type: existing_column?.data_type || column.dtype,
+                  },
+                };
+              }),
+              // keeping this here to capture any stale columns as well.
+              // these can be highlighted in the graph as not-used or no-lineage columns
+              this.modelNode!.columns,
+            );
+
+            this.modelNode!.columns = columns;
+            console.log(this.modelNode);
+
+            const resp = await this.altimate.getColLevelLineage({
+              model_name: this.modelNode?.alias,
+              compiled_sql: compiledSql,
+              model_node: this.modelNode,
+            });
+            console.log("Column level lineage response");
+            console.log(resp);
         }
       },
       null,
@@ -206,17 +261,13 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     if (projectRootpath === undefined) {
       return;
     }
-
     const event = this.eventMap.get(projectRootpath.fsPath);
     if (event === undefined) {
       return;
     }
-
-    const { graphMetaMap } = event;
-    const fileName = path.basename(
-      window.activeTextEditor!.document.fileName,
-      ".sql",
-    );
+    const { graphMetaMap, nodeMetaMap } = event;
+    const fileName = path.basename(currentFilePath.fsPath, ".sql");
+    this.modelNode = nodeMetaMap.get(fileName);
     return this.mapParentsAndChildren(graphMetaMap, fileName);
   };
 
@@ -314,6 +365,7 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     "lineage_panel",
     "index.html",
   ]);
+  const scriptPath = getUri(webview, extensionUri, ["dist", "cll.js"]);
   const resourceDir = getUri(webview, extensionUri, ["lineage_panel"]);
   const theme = [
     ColorThemeKind.Light,
@@ -326,7 +378,8 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     .replace(/__ROOT__/g, resourceDir.toString())
     .replace(/__THEME__/g, theme)
     .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource);
+    .replace(/__CSPSOURCE__/g, webview.cspSource)
+    .replace(/__CLL_URI__/g, scriptPath.toString());
 }
 
 function getNonce() {

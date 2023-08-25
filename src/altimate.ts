@@ -48,6 +48,17 @@ interface DocPromptOptionsResponse {
   }[];
 }
 
+interface Dependency {
+  source: string;
+  target: string;
+  type: string;
+}
+
+interface ColLineageResponse {
+  model_name: string;
+  column_relations: Dependency[];
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -114,6 +125,13 @@ export class AltimateRequest {
       return false;
     }
     return true;
+  }
+
+  async getColLevelLineage(manifest: any) {
+    return this.fetch<ColLineageResponse>("dbt/v1/lineage", {
+      method: "POST",
+      body: JSON.stringify(manifest),
+    });
   }
 
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {

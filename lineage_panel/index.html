@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <!-- These are injected at HTML render time
     __ROOT__            [path to resource directory]
@@ -13,12 +13,26 @@
     <title>Lineage Graph</title>
 
     <!-- These are made available for main.js -->
+    <script
+      nonce="__NONCE__"
+      type="module"
+      src="__ROOT__/assets/toolkit.min.js"
+    ></script>
     <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/style.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/codicon.css" />
   </head>
 
   <body>
+    <vscode-button
+      appearance="secondary"
+      id="togglelintype"
+      style="margin-left: 8px"
+      >Column Level
+      <span slot="start" class="codicon codicon-list-tree"></span>
+    </vscode-button>
     <div id="container"></div>
     <script src="__ROOT__/assets/g6.min.js"></script>
     <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
+    <script nonce="__NONCE__" type="module" src="__CLL_URI__"></script>
   </body>
 </html>
