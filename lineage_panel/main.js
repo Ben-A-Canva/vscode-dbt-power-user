@@ -19,6 +19,13 @@ const legendData = {
 async function executeCommand(command, args) {
   return await vscode.postMessage({ command, ...args });
 }
+const getColLevelLineage = (e) => {
+  console.log("getting col lineage");
+
+  executeCommand("getColLevelLineage");
+};
+
+document.getElementById("togglelintype").onclick = getColLevelLineage;
 
 const legend = new G6.Legend({
   data: legendData,

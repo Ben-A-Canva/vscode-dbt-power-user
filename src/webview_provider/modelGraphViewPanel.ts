@@ -217,7 +217,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
 
             const resp = await this.altimate.getColLevelLineage({
               model_name: this.modelNode?.alias,
-              compiled_sql: compiledSql,
+              compiled_sqls: { current_model: compiledSql, child: {} },
               model_node: this.modelNode,
             });
             console.log("Column level lineage response");
