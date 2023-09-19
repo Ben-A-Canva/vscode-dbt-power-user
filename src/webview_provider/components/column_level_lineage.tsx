@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 async function executeCommand(command: string, args: any = {}) {
-  return await vscode.postMessage({ command, ...args });
+  // return await vscode.postMessage({ command, ...args });
 }
 
 const getColLevelLineage = (e: any) => {
